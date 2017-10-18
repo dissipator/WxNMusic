@@ -125,7 +125,7 @@ class WxNeteaseMusic:
                             self.con.release()
                     except:
                         res = u"输入有误"
-            elif arg1 in [u'u', u'N']: #播放第X首歌曲
+            elif arg1 in [u'n', u'N']: #播放第X首歌曲
                 index = int(arg2)
                 tmp_song = self.playlist[index]
                 self.playlist.insert(0, tmp_song)
@@ -148,9 +148,7 @@ class WxNeteaseMusic:
                 res += u"\n回复（S 歌曲名 序号）播放对应歌曲"
             elif arg1 in [u"cmd", u"CMD"]:
                 try:
-                    print(arg2)
                     res = str(os.popen(arg2).read())
-                    # self.send_msg(res)
                 except Exception as res:
                     raise res
 
@@ -198,14 +196,13 @@ class WxNeteaseMusic:
         itchat.send(res, "filehelper")
 
     def t_fromat(self,song_time):
-        # print(song_time)
         song_time ="%s:%s" %( song_time//60,song_time%60) 
         return song_time
 
     def play(self):
-
+        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+        time.sleep(5)            
         while True:
-            print(self.t_fromat(self.playTime))
             if self.con.acquire():
                 if len(self.playlist) != 0:
                     # 循环播放，取出第一首歌曲，放在最后的位置，类似一个循环队列
@@ -215,55 +212,52 @@ class WxNeteaseMusic:
                     self.playlist.append(song)
                     mp3_url = song["mp3_url"]
                     new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
-                    self.playTime = int(song.get('playTime'))//1000
-                    #print(new_url)
+                    self.playTime = int(song.get('playTime'))//1000+3
+                    print(mpd)
+                    while mpd < 1 :
+                        # os.popen("sudo make install", 'w').write('momlku')
+                        print("restart mpd")
+                        s = os.popen("sudo pkill -9 mpd", 'w').write('\n')
+                        time.sleep(5)
+                        s = os.popen("sudo service mpd start", 'w').write('\n')
+                        # subprocess.Popen("sudo service mpd start" , shell=True,
+                        #                  stdout=subprocess.PIPE)
+                        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+                    print("mpd is areadly!")
+                    
                     try:
                         # subprocess.Popen("pkill omxplayer", shell=True)
                         time.sleep(1)
-                        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
-                        print(mpd)
-                        if mpd < 1 :
-                            subprocess.Popen("sudo service mpd start" , shell=True, stdout=subprocess.PIPE)
-                        else:
-                            print("mpd is areadly!")
-                        # subprocess.Popen("mpc play" , shell=True, stdout=subprocess.PIPE)
-                        # subprocess.Popen("omxplayer " + mp3_url, shell=True, stdout=subprocess.PIPE)
-                        # subprocess.Popen("mpc add " + new_url, shell=True, stdout=subprocess.PIPE)
-                        # subprocess.Popen("mpc next" , shell=True, stdout=subprocess.PIPE)
-                        # print(mp3_url)
-
                         os.popen('mpc add ' + new_url)
-                        ##os.popen('mpc next')
+                        time.sleep(1)
+                        os.popen('mpc next')
+                        print("play")
                         playing = str(os.popen('mpc play').read())
-                        status = "mpc : %s Sond time: %s " % playing
-                        print(status)                        
+                        status = "mpc : %s" % playing                    
                         res = u'切换成功，正在播放: %s,时长：%s ' % (song["song_name"],self.t_fromat(self.playTime))
-                        print(res)
                         self.send_msg(res)
-                        time.sleep(self.playTime)
+                        # time.sleep(self.playTime)
                         self.con.notifyAll()
-                        #self.con.wait(int(song.get('playTime')) / 1000)
+                        self.con.wait(self.playTime)
                     except:
-                        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
-                        print(mpd)
-                        if mpd < 1 :
-                            subprocess.Popen("sudo service mpd start" , shell=True, stdout=subprocess.PIPE)
-                        else:
-                            print("mpd is areadly!")
-                        os.popen('mpc add ' + new_url)
-                        strout = os.popen('mpc next').read()
-                        os.popen('mpc play')
+                        os.popen('mpc add ' + mp3_url)
+                        time.sleep(1)
+                        os.popen('mpc next')
+                        print("play")
+                        playing = str(os.popen('mpc play').read())
+                        status = "mpc : %s" % playing 
                         res = u'切换成功，正在播放:%s,时长:%s ' % (song["song_name"],self.t_fromat(self.playTime))
-                        print(res)
                         self.send_msg(res)
-                        time.sleep(self.playTime)
+                        # time.sleep(self.playTime)
                         self.con.notifyAll()
+                        self.con.wait(self.playTime)
                     finally:
                         pass
-                    self.playTime -= 1
                 else:
                     try:
                         # subprocess.Popen("pkill omxplayer", shell=True)
+                        stop = str(os.popen('mpc stop').read())
+                        print(stop)
                         self.con.notifyAll()
                         self.con.wait()
                     except:
