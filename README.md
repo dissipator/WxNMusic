@@ -3,17 +3,18 @@
 注意，该版本为树莓派版，如果需要使用电脑版(Windows/Linux/OSX)，[请点击这里](https://github.com/yaphone/WxNeteaseMusic)。
 
 ## 来源
-
-之前毕业的时候实在闲的无聊，正好手头上有个树莓派，就写了个简单的网易云音乐播放器，代码很简单，写的也很乱，功能更简单--只能搜索歌曲，然后播放之，放在了github上，没想到竟然收到三十多颗星，实在惭愧，然后放年假，就想着把功能稍微完善一下，于是就有了[WxNeteaseMusic](https://github.com/yaphone/RasWxNeteaseMusic)，其实做的工作也不多，基于[itchat](https://github.com/littlecodersh/ItChat)和[网易云音乐的python API](https://github.com/yaphone/musicbox)，废话不多说，容我简单介绍一下吧。
+在树莓派上安装了个mpd和mpc，虽然可以远程控制，但是不能和163联动，就在网上找到了一份WxNeteaseMusic、既可以链接１６３还可以使用itchat,代码很简单，功能更简单,就修改了一下并加入了指令控制
+基于[itchat](https://github.com/littlecodersh/ItChat)和[网易云音乐的python API](https://github.com/yaphone/musicbox)，废话不多说，容我简单介绍一下吧。
 
 首先，我的场景是这样的，实验室是有一台电脑放音乐的，大家切歌就要跑到那里操作，比较麻烦，后来我就想做个后台，用微信来操作切歌这些，这样大家只要加了我的微信号，发相关指令就可以了，还是比较方便的。再后来，电脑换成了树莓派，我就又移植到了树莓派上。不过这里吐槽一下，树莓派的原生音质确实渣，我们后来买了个 DAC ，完美。😁
 
 ## 安装
 
-项目源码都都在[我的Github](https://github.com/yaphone/RasWxNeteaseMusic)上，大家先下载下来，麻烦大家顺手点个star哟~，谢谢。
+项目源码都都在[我的Github](https://github.com/dissipator/WxNMusic)上，大家先下载下来，麻烦大家顺手点个star哟~，谢谢。
 我们以树莓派环境为例，安装其实很简单，都是一些python的pip依赖包:
 
 - sudo apt-get install python-dev
+- sudo apt-get install mpd mpc
 - sudo pip install requests
 - sudo pip install future
 - sudo pip install crypto 
@@ -94,17 +95,9 @@
 
 - 增加控制音量功能 `amixer sset PCM 80%`
 
-## 其它
-
-当前在树莓派上使用的播放器为raspbian自带的omxplayer，因为python的mp3play包不能在树莓派上使用，后来对比了mpg123和omxplayer发现，omxplayer音质还要相对好一些。另外，在登陆网易云音乐的时候需要进行一个加密算法，由于树莓派的计算能力有限，所以需要多等待一会。
-
 ## BUGS
-
-1.网易云音乐中部分音乐链接已失效，所以可能导致播放失败的情况，这种情况下，因为树莓派版使用的是omxplayer，而非[其它平台下的WxNeteaseMusic](https://github.com/yaphone/WxNeteaseMusic)使用的mp3play模块，omxplayer并不能感知到播放失败，还会一直等待当前播放失败的歌曲的时长才会播放下一首，或者其它命令触发切换动作，如（N）等，建议使用网易音乐的客户端把播放失败的这首歌直接删除掉，这样在树莓派上播放时就不会卡住了。而电脑版使用的是python的mp3play包，播放失败时会自动跳过。
-
-2.通过`N 序号`选择列表中的歌曲时，播放是临时的，并不保存在播放列表中，此时再发`R`命令时显示的播放信息是错误的。
-
-3.如果出现二维码不完整的问题，是linux平台编码字符宽度问题，尝试使用itchat.auto_login(enableCmdQR=True)。
+1.通过`N 序号`选择列表中的歌曲时，播放是临时的，并不保存在播放列表中，此时再发`R`命令时显示的播放信息是错误的。
+2.如果出现二维码不完整的问题，是linux平台编码字符宽度问题，尝试使用itchat.auto_login(enableCmdQR=True)。
 
 
 
