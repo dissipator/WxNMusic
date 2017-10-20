@@ -1,5 +1,6 @@
 #coding=utf-8
 import itchat
+import re
 import threading
 import time
 import subprocess
@@ -21,11 +22,138 @@ class WxNeteaseMusic:
         self.con = threading.Condition()
         self.myNetease = MyNetease()
         self.playlist = self.myNetease.get_top_songlist()  #默认是热门歌单
+        self.song =self.self.playlist[0]
+        self.song_id = self.song["song_id"]
+        self.new_url = MyNetease().songs_detail_new_api([self.song_id])[0]['url']
+        self.player = {
+            "song_index" : 0,
+            "playing" : False,
+            "stop" : True,
+            "pause" : False,
+            "song" : self.song,
+            "new_url" : self.new_url,
+            "status" = self.mpd_status()
+        }
+        #volume: 95%   repeat: off   random: off   single: off   consume: off
+        self.playTime = int(song.get('playTime'))//1000
+
+        def mpd_init(self):
+            mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+            time.sleep(5)
+            while mpd < 1 :
+                print("restart mpd")
+                s = os.popen("sudo pkill -9 mpd", 'w').write('\n')
+                time.sleep(5)
+                s = os.popen("sudo service mpd start", 'w').write('\n')
+                mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+            print("mpd is areadly!")
+            return True
+
+        self.mpd = self.mpd_init()
         self.mp3 = None
-        self.playTime = 0
         t = threading.Thread(target=self.play)
         t.start()
 
+    def mpd_init(self):
+        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+        time.sleep(5)
+        while mpd < 1 :
+            print("restart mpd")
+            s = os.popen("sudo pkill -9 mpd", 'w').write('\n')
+            time.sleep(5)
+            s = os.popen("sudo service mpd start", 'w').write('\n')
+            mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
+        print("mpd is areadly!")
+        self.mpd = True
+
+    def do_play(self):
+        try:
+            mpc = str(os.popen('mpc play').read())
+        except Exception as e:
+            self.mpd_init()
+            mpc = str(os.popen('mpc play').read())
+        self.playing = True
+        self.play_stop = False
+        self.play_pause = False
+
+    def pause(self):
+        mpc = str(os.popen('mpc pause').read())
+        self.playing = False
+        self.play_stop = False
+        self.play_pause = True
+
+    def stop(self):
+        mpc = str(os.popen('mpc stop').read())
+        self.playing = False
+        self.play_stop = True
+        self.play_pause = False
+
+    def next(self):
+        mpc = str(os.popen('mpc next').read())
+        self.song_index ++
+
+    def prev(self):
+        mpc = str(os.popen('mpc prev').read())
+        self.song_index --
+
+    def mpd_status(self):
+        #volume: 95%   repeat: off   random: off   single: off   consume: off
+        mpc = os.popen('mpc ').read().split()
+
+        if mpc[1] == "[playing]":
+            self.player['playing'] = True
+            self.player['stop'] = False
+            self.player['pause'] = False
+        elif mpc[1] == "[paused]":
+            self.player['playing'] = False
+            self.player['stop'] = False
+            self.player['pause'] = True
+        else:
+            self.player['playing'] = False
+            self.player['stop'] = True
+            self.player['pause'] = False
+
+        if not self.player['stop']:
+            format_mpc(mpc,"playing")
+
+    def mpd_mode(self,mode=''):
+        if mode == '':
+            print('mode error')
+        else:
+            mpc = 'mpc %s' % mode
+            strs = os.popen(mpc).read()
+            remode = self.mpd_status()
+            return remode[mode]
+        #repeat: off   random: off   single: off   consume: off
+
+    def format_mpc(self,strs,way):
+        lists = ["volume","repeat","random","single","consume"]
+        status = {}
+        if way in ['','status','stop']:
+            for i in range(0,len(strs)):
+                key = strs[i].split(':')
+                if key[0] in (lists):
+                    print(key[0],strs[i+1])
+                    status[key[0]] = strs[i+1]
+        elif way in ['play','playing']:
+            status['name'] = strs[0]
+            if strs[1]=='[playing]':
+                self.player['playing'] = True
+                self.player['stop'] = False
+                self.player['pause'] = False
+            else:
+                self.player['playing'] = True
+                self.player['stop'] = False
+                self.player['pause'] = False
+            n,self.player['song_index'],status['totle'] = re.split('#|/',strs[2])
+            status['timeing'],status['song_time'] = re.split('/',strs[3])
+            status['prest'] = strs[4]
+            for i in range(5,len(strs)):
+            key = strs[i].split(':')
+            if key[0] in (lists):
+                print(key[0],strs[i+1])
+                status[key[0]] = strs[i+1]
+        return status
 
     def msg_handler(self, args):
         arg_list = args.split(" ")  # 参数以空格为分割符
@@ -63,9 +191,11 @@ class WxNeteaseMusic:
                 res += u'\n回复 (N) 播放下一曲， 回复 (N 序号)播放对应歌曲'
             elif arg in [u'R',u"r"]: #当前正在播放的歌曲信息
                 song_info = self.playlist[-1]
+                song_id= song_info.get("song_id")
                 artist = song_info.get("artist")
                 song_name = song_info.get("song_name")
                 album_name = song_info.get("album_name")
+                new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
                 res = u"歌曲：" + song_name + u"\n歌手：" + artist + u"\n专辑：" + album_name
             elif arg == u"S": #单曲搜索
                 res = u"回复 (S 歌曲名) 进行搜索"
@@ -199,9 +329,34 @@ class WxNeteaseMusic:
         song_time ="%s:%s" %( song_time//60,song_time%60) 
         return song_time
 
+    def load_playlist(self):
+        playlist = self.playlist
+        for song in playlist:
+            song_id = song["song_id"]
+            new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+            os.popen('mpc clear ')
+            os.popen('mpc add ' + new_url)
+    
     def play(self):
-        mpd = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
-        time.sleep(5)            
+        while True:
+            self.mpd_status()
+            time.sleep(1)
+            print(self.player[song_index])
+            if self.con.acquire():
+                if len(self.playlist) != 0:
+                    try:
+                        self.play
+                    except Exception as e:
+                        print(e)
+                        mpd_init
+                        self.play
+                    # song_id = song["song_id"]
+                    # mp3_url = song["mp3_url"]
+                    # new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+                    # self.playTime = int(song.get('playTime'))//1000+3
+                
+
+    def play2(self):
         while True:
             if self.con.acquire():
                 if len(self.playlist) != 0:
@@ -232,10 +387,10 @@ class WxNeteaseMusic:
                         time.sleep(1)
                         os.popen('mpc next')
                         print("play")
-                        playing = str(os.popen('mpc play').read())
-                        status = "mpc : %s" % playing                    
+                        playing = str(os.popen('mpc play').read())                 
                         res = u'切换成功，正在播放: %s,时长：%s ' % (song["song_name"],self.t_fromat(self.playTime))
                         self.send_msg(res)
+                        self.send_msg(playing)
                         # time.sleep(self.playTime)
                         self.con.notifyAll()
                         self.con.wait(self.playTime)
@@ -245,10 +400,9 @@ class WxNeteaseMusic:
                         os.popen('mpc next')
                         print("play")
                         playing = str(os.popen('mpc play').read())
-                        status = "mpc : %s" % playing 
                         res = u'切换成功，正在播放:%s,时长:%s ' % (song["song_name"],self.t_fromat(self.playTime))
                         self.send_msg(res)
-                        # time.sleep(self.playTime)
+                        self.send_msg(playing)
                         self.con.notifyAll()
                         self.con.wait(self.playTime)
                     finally:
