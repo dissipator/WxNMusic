@@ -131,7 +131,6 @@ class WxNeteaseMusic:
             status = self.format_mpc(mpc,"stop")
         else:
             status = self.format_mpc(mpc,"playing")
-            
         return status
 
     def mpd_mode(self,mode=''):
@@ -419,7 +418,8 @@ class WxNeteaseMusic:
             time.sleep(1)
             if self.con.acquire():
                 if len(self.playlist) != 0:
-
+                    status = self.mpd_status()
+                    print(status)
                     index = self.song_index + 1
                     print("load next song url : %d" % index )
                     next_song = self.playlist[index]
