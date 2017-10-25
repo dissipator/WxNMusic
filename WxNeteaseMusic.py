@@ -412,9 +412,13 @@ class WxNeteaseMusic:
             time.sleep(1)
             if self.con.acquire():
                 if len(self.playlist) != 0:
+                    p_index = self.song_index
                     status = self.mpd_status()
                     print(self.song_index)
-                    index = int(self.song_index) + 1
+                    if p_index == self.song_index:
+                        index = int(self.song_index) + 1
+                    else:
+                        index = int(p_index) + 2
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
                     next_song_name = next_song["song_name"]
