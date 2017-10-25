@@ -172,7 +172,7 @@ class WxNeteaseMusic:
     def t_fromat(self,song_time):
         song_time ="%s:%s" %( song_time//60,song_time%60) 
         return song_time
-    def load_url(self,index=0, song=''):
+    def load_url(self, song=''):
         print("load_url")
         if song == '':
             song = self.playlist[self.song_index]
@@ -182,8 +182,10 @@ class WxNeteaseMusic:
         new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
         self.playlist[self.song_index]['new_url'] = new_url
         song['new_url'] = new_url
-        print("add url : ",new_url)
-        os.popen('mpc add ' + new_url)
+        cmd = 'mpc add ' + new_url
+        print("add url : ",cmd)
+        add = os.popen(cmd).read()
+        print(add)
         return song
  
     def msg_handler(self, args):
@@ -381,32 +383,28 @@ class WxNeteaseMusic:
         p = self.mpd_status()
 
     def play(self,next_time=0):
-        os.popen('mpc clear')
-        self.load_url()
-        self.play()
         index = 0
         while True:
             time.sleep(1)
             if self.con.acquire():
                 if len(self.playlist) != 0:
-                    p_index = self.song_index
-                    status = self.mpd_status()
-                    if p_index == index:
-                        index = int(self.song_index) + 1
-                    else:
-                        index = index + 1
-                    print(p_index,self.song_index,index)
-                    # print("load next song url : %d" % index )
-                    next_song = self.playlist[index]
-                    next_song_name = next_song["song_name"]
-                    # print(next_song)
-                    next_time = int(next_song.get('playTime'))/1000 - 10
-                    self.load_url(index,next_song)
-                    msg = "Next song is : %s " % ( next_song_name )
-                    self.send_msg(msg)
-                    self.con.notifyAll()
-                    self.con.wait(20)
-                try:
-                    pass
-                except Exception as e:
-                    raise e
+                    song = self.playlist[0]
+                    next_song = self.playlist[1]
+                    self.playlist.remove(song)
+                    self.playlist.append(song)
+                    self.playlist.remove(next_song)
+                    self.playlist.append(next_song)
+                    os.popen('mpc clear')
+                    try:
+                        self.load_url(song)
+                        self.do_play()
+                        self.load_url(next_song)
+                        next_song_name = next_song["song_name"]
+                        song_time = int(song.get('playTime'))/1000 
+                        next_time = int(next_song.get('playTime'))/1000 
+                        msg = "Next song is : %s " % ( next_song_name )
+                        self.send_msg(msg)
+                        self.con.notifyAll()
+                        self.con.wait(song_time)
+                    except Exception as e:
+                        print(e)
