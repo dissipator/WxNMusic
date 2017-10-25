@@ -178,17 +178,12 @@ class WxNeteaseMusic:
             song = self.playlist[self.song_index]
         song_id = song["song_id"]
         print("song : ",song)
-        try:
-            mp3_url = song["mp3_url"]
-            new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
-            self.playlist[self.song_index]['new_url'] = new_url
-            song['new_url'] = new_url
-            print("add url : ",new_url)
-            os.popen('mpc add ' + new_url)
-        except Exception as e:
-            print(e)
-            # os.popen('mpc add ' + mp3_url)
-        # print(os.popen('mpc playlist '))
+        mp3_url = song["mp3_url"]
+        new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+        self.playlist[self.song_index]['new_url'] = new_url
+        song['new_url'] = new_url
+        print("add url : ",new_url)
+        os.popen('mpc add ' + new_url)
         return song
  
     def msg_handler(self, args):
