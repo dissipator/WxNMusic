@@ -409,19 +409,19 @@ class WxNeteaseMusic:
     def play(self,next_time=0):
         os.popen('mpc clear')
         self.load_url()
-        index = 1
+        self.play()
+        index = 0
         while True:
             time.sleep(1)
             if self.con.acquire():
                 if len(self.playlist) != 0:
                     p_index = self.song_index
                     status = self.mpd_status()
-                    print(self.song_index)
                     if p_index == index:
                         index = int(self.song_index) + 1
                     else:
                         index = index + 1
-                    print(p_index,index)
+                    print(p_index,self.song_index,index)
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
                     next_song_name = next_song["song_name"]
@@ -431,7 +431,7 @@ class WxNeteaseMusic:
                     msg = "Next song is : %s " % ( next_song_name )
                     self.send_msg(msg)
                     self.con.notifyAll()
-                    self.con.wait(next_time)
+                    self.con.wait(20)
                 try:
                     pass
                 except Exception as e:
