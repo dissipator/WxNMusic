@@ -420,7 +420,7 @@ class WxNeteaseMusic:
                 if len(self.playlist) != 0:
                     status = self.mpd_status()
                     print(status)
-                    index = self.song_index + 1
+                    index = int(self.song_index) + 1
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
                     next_song_name = next_song["song_name"]
