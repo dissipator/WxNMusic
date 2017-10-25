@@ -177,6 +177,7 @@ class WxNeteaseMusic:
         if song == '':
             song = self.playlist[self.song_index]
         song_id = song["song_id"]
+        print("song : ",song)
         try:
             mp3_url = song["mp3_url"]
             new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
@@ -189,28 +190,6 @@ class WxNeteaseMusic:
             # os.popen('mpc add ' + mp3_url)
         # print(os.popen('mpc playlist '))
         return song
-
-    def load_playlist(self):
-        print("load_playlist")
-        playlist = self.playlist
-        os.popen('mpc clear ')
-        self.do_play()
-        for song in playlist:
-            song_id = song["song_id"]
-            mp3_url = song["mp3_url"]
-            new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
-            # print('add',new_url)
-            try:
-                # shell = subprocess.Popen('mpc add ' + new_url, 
-                    # shell=True, stdout=subprocess.PIPE)
-                # shell.run()
-                os.popen('mpc add ' + new_url)
-            except:
-
-                # subprocess.Popen('mpc add ' + new_url,
-                         # shell=True, stdout=subprocess.PIPE)
-                # shell.run()
-                os.popen('mpc add ' + mp3_url)
  
     def msg_handler(self, args):
         arg_list = args.split(" ")  # 参数以空格为分割符
