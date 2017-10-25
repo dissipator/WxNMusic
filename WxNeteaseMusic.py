@@ -185,7 +185,7 @@ class WxNeteaseMusic:
             print("add url : ",new_url)
             os.popen('mpc add ' + new_url)
         except e:
-            print e
+            print(e)
             # os.popen('mpc add ' + mp3_url)
         # print(os.popen('mpc playlist '))
         return song
