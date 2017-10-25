@@ -146,6 +146,7 @@ class WxNeteaseMusic:
     def format_mpc(self,strs,way):
         lists = ["volume","repeat","random","single","consume"]
         status = {}
+        print(strs)
         if way in ['','status','stop']:
             for i in range(0,len(strs)):
                 key = strs[i].split(':')
@@ -154,14 +155,6 @@ class WxNeteaseMusic:
                     status[key[0]] = strs[i+1]
         elif way in ['play','playing']:
             status['name'] = strs[0]
-            if strs[1]=='[playing]':
-                self.player['playing'] = True
-                self.player['stop'] = False
-                self.player['pause'] = False
-            else:
-                self.player['playing'] = True
-                self.player['stop'] = False
-                self.player['pause'] = False
             n,self.song_index,status['totle'] = re.split('#|/',strs[2])
             status['timeing'],status['song_time'] = re.split('/',strs[3])
             status['prest'] = strs[4]
@@ -169,7 +162,7 @@ class WxNeteaseMusic:
                 key = strs[i].split(':')
                 if key[0] in (lists):
                     status[key[0]] = strs[i+1]
-        # print(status)
+        print(status)
         return status
 
     def send_msg(self,res):
