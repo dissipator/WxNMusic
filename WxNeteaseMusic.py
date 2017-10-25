@@ -409,6 +409,7 @@ class WxNeteaseMusic:
     def play(self,next_time=0):
         os.popen('mpc clear')
         self.load_url()
+        index = 1
         while True:
             time.sleep(1)
             if self.con.acquire():
@@ -416,10 +417,10 @@ class WxNeteaseMusic:
                     p_index = self.song_index
                     status = self.mpd_status()
                     print(self.song_index)
-                    if p_index == self.song_index:
+                    if p_index == index:
                         index = int(self.song_index) + 1
                     else:
-                        index = int(p_index) + 2
+                        index = index + 1
                     print(p_index,index)
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
