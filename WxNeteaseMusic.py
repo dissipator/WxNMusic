@@ -146,7 +146,7 @@ class WxNeteaseMusic:
     def format_mpc(self,strs,way):
         lists = ["volume","repeat","random","single","consume"]
         status = {}
-        print(strs)
+        # print(strs)
         if way in ['','status','stop']:
             for i in range(0,len(strs)):
                 key = strs[i].split(':')
@@ -155,14 +155,15 @@ class WxNeteaseMusic:
                     status[key[0]] = strs[i+1]
         elif way in ['play','playing']:
             status['name'] = strs[0]
-            n,self.song_index,status['totle'] = re.split('#|/',strs[2])
+            n,status['index'],status['totle'] = re.split('#|/',strs[2])
+            self.song_index = status['index']
             status['timeing'],status['song_time'] = re.split('/',strs[3])
             status['prest'] = strs[4]
             for i in range(5,len(strs)):
                 key = strs[i].split(':')
                 if key[0] in (lists):
                     status[key[0]] = strs[i+1]
-        print(status)
+        # print(status)
         return status
 
     def send_msg(self,res):
@@ -412,7 +413,7 @@ class WxNeteaseMusic:
             if self.con.acquire():
                 if len(self.playlist) != 0:
                     status = self.mpd_status()
-                    print(status)
+                    print(self.song_index)
                     index = int(self.song_index) + 1
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
