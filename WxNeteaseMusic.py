@@ -127,7 +127,7 @@ class WxNeteaseMusic:
             self.player['stop'] = True
             self.player['pause'] = False
 
-        if not self.player['stop']:
+        if self.player['stop']:
             status = self.format_mpc(mpc,"stop")
         else:
             status = self.format_mpc(mpc,"playing")
@@ -421,10 +421,10 @@ class WxNeteaseMusic:
                     status = self.mpd_status()
                     print(status)
                     index = self.song_index + 1
-                    print("load next song url : %d" % index )
+                    # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
                     next_song_name = next_song["song_name"]
-                    print(next_song)
+                    # print(next_song)
                     next_time = int(next_song.get('playTime'))/1000 - 10
                     self.load_url(index,next_song)
                     msg = "Next song is : %s " % ( next_song_name )
