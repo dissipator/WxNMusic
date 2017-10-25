@@ -419,6 +419,7 @@ class WxNeteaseMusic:
                         index = int(self.song_index) + 1
                     else:
                         index = int(p_index) + 2
+                    print(p_index,index)
                     # print("load next song url : %d" % index )
                     next_song = self.playlist[index]
                     next_song_name = next_song["song_name"]
