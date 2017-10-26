@@ -3,6 +3,7 @@ import itchat
 import re
 import threading
 import time
+from time import sleep
 import subprocess
 from myapi import MyNetease
 import os
@@ -48,7 +49,7 @@ class WxNeteaseMusic:
         while mpd:
             print("restart mpd")
             s = os.popen("sudo systemctl restart mpd.socket", 'w').write('\n')
-            time.sleep(5)
+            sleep(5)
             s = os.popen("sudo systemctl start mpd.socket", 'w').write('\n')
             os.popen("mpc play")
             mpds = int(os.popen('ps -ef | grep -v grep | grep mpd| wc -l').read())
@@ -91,16 +92,6 @@ class WxNeteaseMusic:
             mpc = str(os.popen('mpc play').read())
             res = u'切换成功，正在播放: song_index: ' + str(self.song_index) +song.get('song_name')
         return res
-
-    def next_by_index(self,index):
-        next_index = self.song_index + 2
-        tmp_song = self.playlist[index]
-        self.playlist.insert(next_index, tmp_song)
-        print(self.playlist[index],self.playlist[next_index])
-        self.load_url(next_index,tmp_song)
-        os.popen('mpc play %d' % next_index)
-        self.song_index = next_index
-        del self.playlist[-1]
 
     def prev(self):
         self.song_index -= 1
@@ -172,20 +163,44 @@ class WxNeteaseMusic:
     def t_fromat(self,song_time):
         song_time ="%s:%s" %( song_time//60,song_time%60) 
         return song_time
-    def load_url(self, song=''):
+    def load_url(self, song=' '):
         print("load_url")
-        if song == '':
+        if song == ' ':
             song = self.playlist[self.song_index]
-        song_id = song["song_id"]
+        
         print("song : ",song)
-        mp3_url = song["mp3_url"]
-        new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
-        self.playlist[self.song_index]['new_url'] = new_url
-        song['new_url'] = new_url
-        cmd = 'mpc add ' + new_url
+
+        if ('new_url' in song.keys()):
+            new_url = song["new_url"]
+       	elif 'song_id' in song.keys():
+            song_id = song["song_id"]
+            print("find new_url : ")
+            new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+            song['new_url'] = new_url
+            cmd = 'mpc add ' + new_url
+        else:
+            song_list = self.myNetease.search_by_name(song['song_name'])
+            song = song_list[0]
+            if 'song_id' in song.keys():
+                song_id = song["song_id"]
+                print("find new_url : ")
+                new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+                song['new_url'] = new_url
+                cmd = 'mpc add ' + new_url
+            else:
+                if self.con.acquire():
+                    self.con.notifyAll()
+                    self.con.release()
+
+
         print("add url : ",cmd)
-        add = os.popen(cmd).read()
+        
+        try:
+            add = os.popen(cmd).read()
+        except Exception as e:
+            print(e)
         print(add)
+        
         return song
  
     def msg_handler(self, args):
@@ -200,7 +215,6 @@ class WxNeteaseMusic:
                 self.do_play()
             elif arg in [u'N',u'n']:  # 下一曲
                 if len(self.playlist) > 0:
-                    res = self.next()
                     if self.con.acquire():
                         self.con.notifyAll()
                         self.con.release()
@@ -242,10 +256,6 @@ class WxNeteaseMusic:
                 for song in self.playlist:
                     res += str(i) + ". " + song["song_name"] + "\n"
                     i += 1
-                os.popen('mpc clear')
-                self.song_index = 0
-                self.load_url()
-                self.play()               
                 res += u'\n回复 (N) 播放下一曲， 回复 (N 序号)播放对应歌曲'
             elif arg == u'G':#推荐歌单
                 self.playlist = self.myNetease.get_recommend_playlist()
@@ -255,10 +265,6 @@ class WxNeteaseMusic:
                 for song in self.playlist:
                     res += str(i) + ". " + song["song_name"] + "\n"
                     i += 1
-                os.popen('mpc clear')
-                self.song_index = 0
-                self.load_url()
-                self.play()
                 res += u'\n回复 (N) 播放下一曲， 回复 (N 序号)播放对应歌曲'
             elif arg in [u"mpd", u"Mpd", u"MPD"]:
                 res = u"回复: " + str(self.mpd_status())
@@ -301,7 +307,6 @@ class WxNeteaseMusic:
                         self.song_index = 0
                         os.popen('mpc clear')
                         res = u"用户歌单切换成功，回复 (M) 可查看当前播放列表"
-                        self.do_play()
                         if self.con.acquire():
                             self.con.notifyAll()
                             self.con.release()
@@ -310,13 +315,13 @@ class WxNeteaseMusic:
             elif arg1 in [u'n', u'N']: #播放第X首歌曲
                 index = int(arg2)
                 tmp_song = self.playlist[index]
-                # self.playlist.insert(0, tmp_song)
-                res = self.next_by_index(index)
+                self.playlist.insert(0, tmp_song)
                 if self.con.acquire():
                     self.con.notifyAll()
                     self.con.release()
+                res = u'切换成功，正在播放: ' + self.playlist[0].get('song_name')
                 time.sleep(.5)
-                # del self.playlist[-1]
+                del self.playlist[-1]
 
             elif arg1 == u"S": #歌曲搜索+歌曲名
                 song_name = arg2
@@ -385,26 +390,36 @@ class WxNeteaseMusic:
     def play(self,next_time=0):
         index = 0
         while True:
-            time.sleep(1)
             if self.con.acquire():
+                status = "index: %s\n player: %s \n" % (self.song_index,self.player['playing'])
+                print(status)
                 if len(self.playlist) != 0:
                     song = self.playlist[0]
                     next_song = self.playlist[1]
-                    self.playlist.remove(song)
-                    self.playlist.append(song)
-                    self.playlist.remove(next_song)
-                    self.playlist.append(next_song)
                     os.popen('mpc clear')
-                    try:
-                        self.load_url(song)
+                    song = self.load_url(song)
+                    self.do_play()
+                    next_song_name = next_song["song_name"]
+                    song_time = int(song.get('playTime'))/1000 
+                    next_time = int(next_song.get('playTime'))/1000 
+                    sleep(3)
+                    status = self.mpd_status()
+                    if self.player['playing']:
+                        mpc_m, mpc_s = status['song_time'].split(':')
+                        mpc_time = int(mpc_m) * 60 + int(mpc_s) 
+                        print(mpc_time,song_time)
+                        time = mpc_time
+                    else:
                         self.do_play()
-                        self.load_url(next_song)
-                        next_song_name = next_song["song_name"]
-                        song_time = int(song.get('playTime'))/1000 
-                        next_time = int(next_song.get('playTime'))/1000 
-                        msg = "Next song is : %s " % ( next_song_name )
-                        self.send_msg(msg)
-                        self.con.notifyAll()
-                        self.con.wait(song_time)
-                    except Exception as e:
-                        print(e)
+                        time = song_time
+
+                    msg = "Next song is : %s " % ( next_song_name )
+                    self.send_msg(msg)
+                    if song in self.playlist:
+                        self.playlist.remove(song)
+                    self.playlist.append(song)
+                    # print(self.playlist[-1])
+                    self.con.notifyAll()
+                    self.con.wait(time)
+
+
