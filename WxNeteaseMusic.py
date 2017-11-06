@@ -22,6 +22,7 @@ class WxNeteaseMusic:
             u"E: 退出\n"
         self.con = threading.Condition()
         self.myNetease = MyNetease()
+        # print(self.myNetease.login('13666244245', 'lou8i7u9k'))
         self.playlist = self.myNetease.get_top_songlist()  #默认是热门歌单
         self.song_index = 0
         self.song =self.playlist[self.song_index]
@@ -167,40 +168,30 @@ class WxNeteaseMusic:
         print("load_url")
         if song == ' ':
             song = self.playlist[self.song_index]
-        
-        print("song : ",song)
-
+        # print("song : ",song)
         if ('new_url' in song.keys()):
             new_url = song["new_url"]
        	elif 'song_id' in song.keys():
             song_id = song["song_id"]
-            print("find new_url : ")
-            new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
-            song['new_url'] = new_url
-            cmd = 'mpc add ' + new_url
-        else:
-            song_list = self.myNetease.search_by_name(song['song_name'])
-            song = song_list[0]
-            if 'song_id' in song.keys():
-                song_id = song["song_id"]
-                print("find new_url : ")
-                new_url = MyNetease().songs_detail_new_api([song_id])[0]['url']
+            song_data = MyNetease().songs_detail_new_api([song_id])
+            print("find new_url : ",song_data)
+            if song_data:
+                new_url = song_data[0]['url']
                 song['new_url'] = new_url
+            try:
                 cmd = 'mpc add ' + new_url
-            else:
-                if self.con.acquire():
-                    self.con.notifyAll()
-                    self.con.release()
-
-
-        print("add url : ",cmd)
-        
-        try:
-            add = os.popen(cmd).read()
-        except Exception as e:
-            print(e)
-        print(add)
-        
+                print("add url : ",cmd)
+                add = os.popen(cmd).read()
+            except Exception as e:
+                print(e)
+                cmd = 'mpc add ' + song['mp3_url']
+                print("add url : ",cmd)
+                add = os.popen(cmd).read()
+            print(add)
+        else:
+            if self.con.acquire():
+                self.con.notifyAll()
+                self.con.release()
         return song
  
     def msg_handler(self, args):

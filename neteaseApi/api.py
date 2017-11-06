@@ -252,7 +252,7 @@ class NetEase(object):
                                            data=query,
                                            headers=self.header,
                                            timeout=default_timeout)
-            #self.session.cookies.save()
+            self.session.cookies.save()
 
         connection.encoding = 'UTF-8'
         return connection.text
@@ -537,13 +537,17 @@ class NetEase(object):
                 csrf = cookie.value
         if csrf == '':
             notify('You Need Login', 1)
+            print('You Need Login')
         action += csrf
         data = {'ids': music_ids, 'br': bit_rate, 'csrf_token': csrf}
         connection = self.session.post(action,
                                        data=encrypted_request(data),
                                        headers=self.header, )
         result = json.loads(connection.text)
+        # print(result)
         return result['data']
+        #{'code': 200, 'data': [{'canExtend': False, 'code': 200, 'br': 320000, 'size': 8628811, 'payed': 0, 'uf': None, 'md5': '50a6c87c31e945acbae4bc11bb777c51', 'gain': -0.0002, 'fee': 0, 'url': 'http://m10.music.126.net/20171106135013/e56f7503852b6edfe7ba962bc63b8193/ymusic/aad6/cdba/07df/50a6c87c31e945acbae4bc11bb777c51.mp3', 'expi': 1200, 'flag': 0, 'id': 515803379, 'type': 'mp3'}]}
+
 
     # song id --> song url ( details )
     def song_detail(self, music_id):
